@@ -1,5 +1,5 @@
 const express = require('express');
-const { sql, poolPromise } = require('../config/db'); // Asegúrate de que esta ruta sea correcta
+const { sql, poolPromise } = require('../config/db'); 
 const router = express.Router();
 
 const jwt = require('jsonwebtoken');
