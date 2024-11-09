@@ -6,25 +6,35 @@ const router = express.Router();
 router.post('/crear', async (req, res) => {
     const { titulo, contenido, categoria_id } = req.body;
 
-    // Validar que la categoría existe
-    const pool = await poolPromise;
-    const categoryExists = await pool.request()
-        .input('categoria_id', sql.Int, categoria_id)
-        .query('SELECT COUNT(*) AS count FROM Categorias WHERE id = @categoria_id');
+    // Si se proporciona categoria_id, verificar que la categoría existe
+    let categoriaValida = true;
+    if (categoria_id) {
+        const pool = await poolPromise;
+        const categoryExists = await pool.request()
+            .input('categoria_id', sql.Int, categoria_id)
+            .query('SELECT COUNT(*) AS count FROM Categorias WHERE id = @categoria_id');
 
-    if (categoryExists.recordset[0].count === 0) {
+        if (categoryExists.recordset[0].count === 0) {
+            categoriaValida = false;
+        }
+    }
+
+    // Si la categoria no es válida, respondemos con un error
+    if (categoria_id && !categoriaValida) {
         return res.status(400).json({ error: 'La categoría no existe.' });
     }
 
     try {
         // Si no se requiere un usuario logueado, el valor de 'usuario_id' puede ser null
-        const usuario_id = null; // Or any default value if required (e.g., guest user ID)
-        
+        const usuario_id = null; // O cualquier valor predeterminado si se requiere (por ejemplo, ID de usuario invitado)
+
+        // Si no se proporciona categoria_id, usamos null en lugar de verificarla
+        const pool = await poolPromise;
         await pool.request()
             .input('titulo', sql.NVarChar, titulo)
             .input('contenido', sql.Text, contenido)
             .input('usuario_id', sql.Int, usuario_id)  // Puede ser null si el usuario no está logueado
-            .input('categoria_id', sql.Int, categoria_id)
+            .input('categoria_id', sql.Int, categoria_id || null) // Usar null si no se proporciona categoria_id
             .query('INSERT INTO Temas (titulo, contenido, usuario_id, categoria_id) VALUES (@titulo, @contenido, @usuario_id, @categoria_id)');
 
         res.status(201).json({ message: 'Tema creado exitosamente' });
