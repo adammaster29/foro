@@ -2,33 +2,28 @@ const express = require('express');
 const { sql, poolPromise } = require('../config/db');
 const router = express.Router();
 
-// Crear un nuevo tema
+//  Crear un nuevo tema
 router.post('/crear', async (req, res) => {
-    const { titulo, contenido, usuario_id, categoria_id } = req.body;
+    const { titulo, contenido, categoria_id } = req.body;
 
-    // Validar que el usuario y categoría existen
+    // Validar que la categoría existe
     const pool = await poolPromise;
-    const userExists = await pool.request()
-        .input('usuario_id', sql.Int, usuario_id)
-        .query('SELECT COUNT(*) AS count FROM Usuarios WHERE id = @usuario_id');
-
     const categoryExists = await pool.request()
         .input('categoria_id', sql.Int, categoria_id)
         .query('SELECT COUNT(*) AS count FROM Categorias WHERE id = @categoria_id');
-
-    if (userExists.recordset[0].count === 0) {
-        return res.status(400).json({ error: 'El usuario no existe.' });
-    }
 
     if (categoryExists.recordset[0].count === 0) {
         return res.status(400).json({ error: 'La categoría no existe.' });
     }
 
     try {
+        // Si no se requiere un usuario logueado, el valor de 'usuario_id' puede ser null
+        const usuario_id = null; // Or any default value if required (e.g., guest user ID)
+        
         await pool.request()
             .input('titulo', sql.NVarChar, titulo)
             .input('contenido', sql.Text, contenido)
-            .input('usuario_id', sql.Int, usuario_id)
+            .input('usuario_id', sql.Int, usuario_id)  // Puede ser null si el usuario no está logueado
             .input('categoria_id', sql.Int, categoria_id)
             .query('INSERT INTO Temas (titulo, contenido, usuario_id, categoria_id) VALUES (@titulo, @contenido, @usuario_id, @categoria_id)');
 
@@ -37,6 +32,41 @@ router.post('/crear', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+// router.post('/crear', async (req, res) => {
+//     const { titulo, contenido, usuario_id, categoria_id } = req.body;
+
+//     // Validar que el usuario y categoría existen
+//     const pool = await poolPromise;
+//     const userExists = await pool.request()
+//         .input('usuario_id', sql.Int, usuario_id)
+//         .query('SELECT COUNT(*) AS count FROM Usuarios WHERE id = @usuario_id');
+
+//     const categoryExists = await pool.request()
+//         .input('categoria_id', sql.Int, categoria_id)
+//         .query('SELECT COUNT(*) AS count FROM Categorias WHERE id = @categoria_id');
+
+//     if (userExists.recordset[0].count === 0) {
+//         return res.status(400).json({ error: 'El usuario no existe.' });
+//     }
+
+//     if (categoryExists.recordset[0].count === 0) {
+//         return res.status(400).json({ error: 'La categoría no existe.' });
+//     }
+
+//     try {
+//         await pool.request()
+//             .input('titulo', sql.NVarChar, titulo)
+//             .input('contenido', sql.Text, contenido)
+//             .input('usuario_id', sql.Int, usuario_id)
+//             .input('categoria_id', sql.Int, categoria_id)
+//             .query('INSERT INTO Temas (titulo, contenido, usuario_id, categoria_id) VALUES (@titulo, @contenido, @usuario_id, @categoria_id)');
+
+//         res.status(201).json({ message: 'Tema creado exitosamente' });
+//     } catch (error) {
+//         res.status(500).json({ error: error.message });
+//     }
+// });
 
 
 
